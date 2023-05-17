@@ -41,6 +41,12 @@ public class MainActivity extends AppCompatActivity {
     ImageView imageView;
     TextView textView;
     Button button;
+    // Variables to store extracted texts
+    private String name = "";
+    private String ID = "";
+
+    private String Section = "";
+
     private static final int PICK_IMAGE = 100;
 
 
@@ -75,6 +81,27 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(gallery, PICK_IMAGE);
     }
 
+    private void saveToCSV(String filePath) {
+        try {
+            FileWriter writer = new FileWriter(filePath);
+            writer.append("Name of Student,Section,Student ID\n"); // Write column headers
+            writer.append(name).append(",").append(Section).append(",").append(ID).append("\n"); // Write extracted texts
+            writer.flush();
+            writer.close();
+            Toast.makeText(MainActivity.this, "Data saved to CSV file: " + filePath, Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(MainActivity.this, "Error writing CSV file: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+
+
+
+
+
+
     private void recognizeText(final Bitmap bitmap) {
         FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(bitmap);
         FirebaseVisionTextRecognizer recognizer = FirebaseVision.getInstance()
@@ -85,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onSuccess(FirebaseVisionText firebaseVisionText) {
                         // Get the detected text blocks
                         List<FirebaseVisionText.TextBlock> blocks = firebaseVisionText.getTextBlocks();
-
+                        StringBuilder selectedTextBuilder = new StringBuilder();
                         // Create a Canvas object to draw on the bitmap
                         Bitmap tempBitmap = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), Bitmap.Config.RGB_565);
                         Canvas canvas = new Canvas(tempBitmap);
@@ -95,17 +122,29 @@ public class MainActivity extends AppCompatActivity {
                         String recognizedText = firebaseVisionText.getText();
 
                         // Write the recognized text to a CSV file in local storage
-                        try {
-                            String filePath = "/storage/emulated/0/Documents/text.csv";
-                            FileWriter writer = new FileWriter(filePath);
-                            writer.write(recognizedText);
-                            writer.flush();
-                            writer.close();
-                            Toast.makeText(MainActivity.this, "Recognized text saved to " + filePath, Toast.LENGTH_SHORT).show();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            Toast.makeText(MainActivity.this, "Error writing CSV file: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        }
+//                        try {
+//                            String filePath = "/storage/emulated/0/Documents/text.csv";
+//                            FileWriter writer = new FileWriter(filePath);
+//                            writer.write(recognizedText);
+//                            writer.flush();
+//                            writer.close();
+//                            Toast.makeText(MainActivity.this, "Recognized text saved to " + filePath, Toast.LENGTH_SHORT).show();
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                            Toast.makeText(MainActivity.this, "Error writing CSV file: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+//                        }
+                        String filePath = "/storage/emulated/0/Documents/text.csv";
+//                        try {
+//                            FileWriter writer = new FileWriter(filePath);
+//                            writer.append("Name of Student,Section,Student ID\n"); // Write column headers
+//                            writer.append(name).append(",").append(Section).append(",").append(ID).append("\n"); // Write extracted texts
+//                            writer.flush();
+//                            writer.close();
+//                            Toast.makeText(MainActivity.this, "Data saved to CSV file: " + filePath, Toast.LENGTH_SHORT).show();
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                            Toast.makeText(MainActivity.this, "Error writing CSV file: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+//                        }
 
                         // Set the recognized text on the TextView
                         textView.setText(recognizedText);
@@ -126,10 +165,11 @@ public class MainActivity extends AppCompatActivity {
                             // Get the text lines in the current block
                             List<FirebaseVisionText.Line> lines = block.getLines();
 
+
                             // Loop through each text line
                             for (FirebaseVisionText.Line line : lines) {
                                 Rect lineBoundingBox = line.getBoundingBox();
-
+                                String lineText = line.getText();
                                 // Create a Paint object to draw the line bounding box
                                 Paint linePaint = new Paint();
                                 linePaint.setColor(Color.RED);
@@ -141,6 +181,14 @@ public class MainActivity extends AppCompatActivity {
 
                                 // Get the text elements in the current line
                                 List<FirebaseVisionText.Element> elements = line.getElements();
+                                // Extract specific texts based on criteria
+                                if (lineText.startsWith("Name of Student ")) {
+                                    name = lineText.substring("Name of Student ".length()).trim();
+                                } else if (lineText.startsWith("Student ID:")) {
+                                    ID = lineText.substring("Student ID:".length()).trim();
+                                } else if (lineText.startsWith("Section:")) {
+                                    Section = lineText.substring("Section:".length()).trim();
+                                }
 
                                 // Loop through each text element
                                 for (FirebaseVisionText.Element element : elements) {
@@ -160,9 +208,9 @@ public class MainActivity extends AppCompatActivity {
 
                             // Split the text into an array of rows
                             String[] rows = text.split("\n");
-
+                            saveToCSV(filePath);
                             // Pass the rows to the saveToCSV method
-//                            saveToCSV(rows, "/storage/emulated/0/Documents");
+//                             saveToCSV(rows, "/storage/emulated/0/Documents");
                         }
 
                         // Set the processed bitmap on the ImageView
@@ -183,29 +231,7 @@ public class MainActivity extends AppCompatActivity {
                 });
 
     }
-//    private void saveToCSV(String[] rows, String filePath) {
-//        try {
-//            FileWriter writer = new FileWriter(filePath);
-//
-//            for (String rowData : rows) {
-//                // Split each row into an array of columns
-//                String[] columns = rowData.split(",");
-//
-//                // Write the columns to the CSV file
-//                writer.append(String.join(",", columns));
-//                writer.append("\n");
-//            }
-//
-//            writer.flush();
-//            writer.close();
-//
-//            // Display a toast message to indicate successful write
-//            Toast.makeText(getApplicationContext(), "Data saved to " + filePath, Toast.LENGTH_SHORT).show();
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
+
     public void doProcess(View view) {
         //open the camera => create an Intent object
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
